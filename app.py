@@ -104,8 +104,9 @@ if 'current_q' not in st.session_state:
 # --- 3. 介面邏輯 (Unit 1 專用) ---
 
 def show_learning_mode_u1():
-    st.markdown("<h2 style='text-align: center;'>Unit 1: O tireng no mako</h2>", unsafe_allow_html=True)
-    st.markdown("<h4 style='text-align: center; color: gray;'>認識我的身體</h4>", unsafe_allow_html=True)
+    # 更新標題為 sakacecay
+    st.markdown("<h2 style='text-align: center;'>sakacecay: O tireng no mako</h2>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: gray;'>我的身體</h4>", unsafe_allow_html=True)
     st.info("小朋友，現在是「真人老師」發音喔！點擊播放聽聽看！")
     
     col1, col2 = st.columns(2)
@@ -138,13 +139,14 @@ def show_learning_mode_u1():
         play_audio(s1['amis'], filename_base=s1.get('file'))
         
     with c2:
-        # 這裡將 Mata 改為小寫 mata
+        # 這裡保持小寫 mata
         display_text = s2['amis'].format(word='mata')
         st.warning(f"A: {display_text}\n(這是眼睛。)")
         play_audio(display_text, filename_base="a_mata") 
 
 def show_quiz_mode_u1():
-    st.markdown("<h2 style='text-align: center;'>🎮 Unit 1 小勇士挑戰</h2>", unsafe_allow_html=True)
+    # 更新標題為 sakacecay
+    st.markdown("<h2 style='text-align: center;'>🎮 sakacecay 小勇士挑戰</h2>", unsafe_allow_html=True)
     progress = st.progress(st.session_state.current_q / 3)
     
     if st.session_state.current_q == 0:
@@ -232,12 +234,10 @@ def show_quiz_mode_u1():
 # --- 4. 主程式入口 ---
 st.sidebar.title("阿美語小教室 🌞")
 
-# 單元選擇器 (為了未來 100 單元做準備)
-# 目前只有 Unit 1，未來可以在 list 中加入更多
+# 單元選擇器 (更新為 sakacecay)
 unit_options = [
-    "Unit 1: O tireng no mako (認識身體)",
-    # "Unit 2: Oramod no mako (我的家人)",  # 未來可開啟
-    # "Unit 3: Oisa ko mihecaan iso? (數字與年齡)" # 未來可開啟
+    "sakacecay: O tireng no mako (我的身體)",
+    # "sakatusa: Oramod no mako (我的家人)",  # 未來可開啟
 ]
 selected_unit = st.sidebar.selectbox("選擇單元", unit_options)
 
@@ -247,8 +247,8 @@ mode = st.sidebar.radio("選擇模式", ["📖 學習單詞", "🎮 練習挑戰
 st.sidebar.markdown("---")
 st.sidebar.caption(f"目前進度：{selected_unit}")
 
-# 根據選擇的單元載入對應內容
-if "Unit 1" in selected_unit:
+# 根據選擇的單元載入對應內容 (檢查字串中是否包含 sakacecay)
+if "sakacecay" in selected_unit:
     if mode == "📖 學習單詞":
         show_learning_mode_u1()
     else:
