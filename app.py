@@ -104,8 +104,8 @@ if 'current_q' not in st.session_state:
 # --- 3. 介面邏輯 (Unit 1 專用) ---
 
 def show_learning_mode_u1():
-    # 更新標題為 sakacecay
-    st.markdown("<h2 style='text-align: center;'>sakacecay: O tireng no mako</h2>", unsafe_allow_html=True)
+    # 更新標題為 Sakacecay (大寫 S)
+    st.markdown("<h2 style='text-align: center;'>Sakacecay: O tireng no mako</h2>", unsafe_allow_html=True)
     st.markdown("<h4 style='text-align: center; color: gray;'>我的身體</h4>", unsafe_allow_html=True)
     st.info("小朋友，現在是「真人老師」發音喔！點擊播放聽聽看！")
     
@@ -145,8 +145,8 @@ def show_learning_mode_u1():
         play_audio(display_text, filename_base="a_mata") 
 
 def show_quiz_mode_u1():
-    # 更新標題為 sakacecay
-    st.markdown("<h2 style='text-align: center;'>🎮 sakacecay 小勇士挑戰</h2>", unsafe_allow_html=True)
+    # 更新標題為 Sakacecay (大寫 S)
+    st.markdown("<h2 style='text-align: center;'>🎮 Sakacecay 小勇士挑戰</h2>", unsafe_allow_html=True)
     progress = st.progress(st.session_state.current_q / 3)
     
     if st.session_state.current_q == 0:
@@ -234,10 +234,9 @@ def show_quiz_mode_u1():
 # --- 4. 主程式入口 ---
 st.sidebar.title("阿美語小教室 🌞")
 
-# 單元選擇器 (更新為 sakacecay)
+# 單元選擇器 (更新為 Sakacecay，且無其他預告)
 unit_options = [
-    "sakacecay: O tireng no mako (我的身體)",
-    # "sakatusa: Oramod no mako (我的家人)",  # 未來可開啟
+    "Sakacecay: O tireng no mako (我的身體)"
 ]
 selected_unit = st.sidebar.selectbox("選擇單元", unit_options)
 
@@ -247,13 +246,12 @@ mode = st.sidebar.radio("選擇模式", ["📖 學習單詞", "🎮 練習挑戰
 st.sidebar.markdown("---")
 st.sidebar.caption(f"目前進度：{selected_unit}")
 
-# 根據選擇的單元載入對應內容 (檢查字串中是否包含 sakacecay)
-if "sakacecay" in selected_unit:
+# 根據選擇的單元載入對應內容 (檢查字串中是否包含 Sakacecay)
+if "Sakacecay" in selected_unit:
     if mode == "📖 學習單詞":
         show_learning_mode_u1()
     else:
         show_quiz_mode_u1()
 else:
-    # 未來單元的預留畫面
-    st.markdown(f"## 🚧 {selected_unit}")
-    st.info("這個單元正在努力建置中，敬請期待！")
+    # 預設畫面 (理論上不會執行到這裡，除非新增了選項但沒寫邏輯)
+    st.info("請選擇一個單元開始學習！")
