@@ -104,8 +104,8 @@ if 'current_q' not in st.session_state:
 # --- 3. 介面邏輯 (Unit 1 專用) ---
 
 def show_learning_mode_u1():
-    # 標題顯示 Sakacecay
-    st.markdown("<h2 style='text-align: center;'>Sakacecay: O tireng no mako</h2>", unsafe_allow_html=True)
+    # 標題顯示 Sakacecay: o tireng no mako (小寫 o)
+    st.markdown("<h2 style='text-align: center;'>Sakacecay: o tireng no mako</h2>", unsafe_allow_html=True)
     st.markdown("<h4 style='text-align: center; color: gray;'>我的身體</h4>", unsafe_allow_html=True)
     st.info("小朋友，現在是「真人老師」發音喔！點擊播放聽聽看！")
     
