@@ -7,7 +7,7 @@ from io import BytesIO
 # --- 0. 系統配置 ---
 st.set_page_config(page_title="阿美語小教室", page_icon="🌞", layout="centered")
 
-# CSS 優化
+# CSS 優化 (卡片樣式、按鈕樣式)
 st.markdown("""
     <style>
     .stButton>button {
@@ -47,8 +47,7 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- 1. 數據結構 ---
-# 注意：這裡的 file 欄位我們改為不帶副檔名，讓程式自己去抓
+# --- 1. 數據結構 (Unit 1) ---
 VOCABULARY = {
     "Fongoh":   {"zh": "頭", "emoji": "🙆‍♂️", "action": "摸摸頭", "file": "Fongoh"},
     "Mata":     {"zh": "眼睛", "emoji": "👀", "action": "眨眨眼", "file": "Mata"},
@@ -65,11 +64,11 @@ SENTENCES = [
     {"amis": "Dihdihen ko pising.", "zh": "摸摸臉頰。", "file": "cmd_dihdihen"}
 ]
 
-# --- 1.5 智慧語音核心 (支援 m4a 與 mp3) ---
+# --- 1.5 智慧語音核心 ---
 def play_audio(text, filename_base=None):
     """
-    1. 優先尋找 .m4a (手機錄音檔)
-    2. 其次尋找 .mp3 (轉檔音訊)
+    1. 優先尋找 audio/xxx.m4a (GitHub 上傳的手機錄音)
+    2. 其次尋找 audio/xxx.mp3 (轉檔音訊)
     3. 如果都沒有，使用 Google TTS (印尼語代理)
     """
     
@@ -77,7 +76,7 @@ def play_audio(text, filename_base=None):
         # 檢查 m4a
         path_m4a = f"audio/{filename_base}.m4a"
         if os.path.exists(path_m4a):
-            st.audio(path_m4a, format='audio/mp4') # m4a 的 MIME type 通常是 audio/mp4
+            st.audio(path_m4a, format='audio/mp4')
             return
             
         # 檢查 mp3
@@ -102,10 +101,11 @@ if 'score' not in st.session_state:
 if 'current_q' not in st.session_state:
     st.session_state.current_q = 0
 
-# --- 3. 介面邏輯 ---
+# --- 3. 介面邏輯 (Unit 1 專用) ---
 
-def show_learning_mode():
-    st.markdown("<h1 style='text-align: center;'>🌞 阿美語身體歌 🌞</h1>", unsafe_allow_html=True)
+def show_learning_mode_u1():
+    st.markdown("<h2 style='text-align: center;'>Unit 1: O tireng no mako</h2>", unsafe_allow_html=True)
+    st.markdown("<h4 style='text-align: center; color: gray;'>認識我的身體</h4>", unsafe_allow_html=True)
     st.info("小朋友，現在是「真人老師」發音喔！點擊播放聽聽看！")
     
     col1, col2 = st.columns(2)
@@ -138,12 +138,13 @@ def show_learning_mode():
         play_audio(s1['amis'], filename_base=s1.get('file'))
         
     with c2:
-        display_text = s2['amis'].format(word='Mata')
+        # 這裡將 Mata 改為小寫 mata
+        display_text = s2['amis'].format(word='mata')
         st.warning(f"A: {display_text}\n(這是眼睛。)")
         play_audio(display_text, filename_base="a_mata") 
 
-def show_quiz_mode():
-    st.markdown("<h1 style='text-align: center;'>🎮 小勇士挑戰 🎮</h1>", unsafe_allow_html=True)
+def show_quiz_mode_u1():
+    st.markdown("<h2 style='text-align: center;'>🎮 Unit 1 小勇士挑戰</h2>", unsafe_allow_html=True)
     progress = st.progress(st.session_state.current_q / 3)
     
     if st.session_state.current_q == 0:
@@ -229,9 +230,30 @@ def show_quiz_mode():
             st.rerun()
 
 # --- 4. 主程式入口 ---
-st.sidebar.title("導航列")
+st.sidebar.title("阿美語小教室 🌞")
+
+# 單元選擇器 (為了未來 100 單元做準備)
+# 目前只有 Unit 1，未來可以在 list 中加入更多
+unit_options = [
+    "Unit 1: O tireng no mako (認識身體)",
+    # "Unit 2: Oramod no mako (我的家人)",  # 未來可開啟
+    # "Unit 3: Oisa ko mihecaan iso? (數字與年齡)" # 未來可開啟
+]
+selected_unit = st.sidebar.selectbox("選擇單元", unit_options)
+
+# 模式選擇
 mode = st.sidebar.radio("選擇模式", ["📖 學習單詞", "🎮 練習挑戰"])
-if mode == "📖 學習單詞":
-    show_learning_mode()
+
+st.sidebar.markdown("---")
+st.sidebar.caption(f"目前進度：{selected_unit}")
+
+# 根據選擇的單元載入對應內容
+if "Unit 1" in selected_unit:
+    if mode == "📖 學習單詞":
+        show_learning_mode_u1()
+    else:
+        show_quiz_mode_u1()
 else:
-    show_quiz_mode()
+    # 未來單元的預留畫面
+    st.markdown(f"## 🚧 {selected_unit}")
+    st.info("這個單元正在努力建置中，敬請期待！")
