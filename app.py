@@ -1,285 +1,234 @@
 import streamlit as st
 import time
-import os
 import random
-from gtts import gTTS
 from io import BytesIO
 
-# ==========================================
-# 🔧 單元設定區 (Unit 1 專屬資料)
-# ==========================================
+# --- 1. 核心功能函數 ---
+def safe_rerun():
+    """自動判斷並執行重整"""
+    try:
+        st.rerun()
+    except AttributeError:
+        try:
+            st.experimental_rerun()
+        except:
+            st.stop()
 
-UNIT_ID = "Unit 1"
-UNIT_NAME = "O tireng no mako (我的身體)"
-UNIT_ICON = "🙆‍♂️"
+def safe_play_audio(text):
+    """語音播放安全模式 (模擬發音)"""
+    try:
+        from gtts import gTTS
+        # 使用印尼語 (id) 模擬南島語系發音
+        tts = gTTS(text=text, lang='id')
+        fp = BytesIO()
+        tts.write_to_fp(fp)
+        st.audio(fp, format='audio/mp3')
+    except Exception as e:
+        st.caption(f"🔇 (語音無法播放)")
 
-# 1. 單字資料庫
-# 格式：Amis: {中文, Emoji, 錄音檔名}
-VOCABULARY = {
-    "Fongoh":   {"zh": "頭", "emoji": "🙆‍♂️", "file": "Fongoh"},
-    "Mata":     {"zh": "眼睛", "emoji": "👀", "file": "Mata"},
-    "Ngoso'":   {"zh": "鼻子", "emoji": "👃", "file": "Ngoso"}, 
-    "Tangila":  {"zh": "耳朵", "emoji": "👂", "file": "Tangila"},
-    "Ngoyos":   {"zh": "嘴巴", "emoji": "👄", "file": "Ngoyos"},
-    "Pising":   {"zh": "臉頰/臉", "emoji": "😊", "file": "Pising"}
-}
+# --- 0. 系統配置 ---
+st.set_page_config(page_title="Unit 1: O Tireng", page_icon="🙆‍♂️", layout="centered")
 
-# 2. 句子資料庫
-# 格式：{阿美語, 中文翻譯, 錄音檔名}
-SENTENCES = [
-    {"amis": "O maan koni?", "zh": "這是什麼？", "file": "q_what"},
-    {"amis": "O mata koni.", "zh": "這是眼睛。", "file": "a_mata"}, 
-    {"amis": "Piti'en ko mata.", "zh": "閉上眼睛。", "file": None},
-    {"amis": "Dihdihen ko pising.", "zh": "摸摸臉頰。", "file": "cmd_dihdihen"}
-]
-
-# ==========================================
-# 📱 系統核心 (UI與邏輯)
-# ==========================================
-
-st.set_page_config(
-    page_title=f"{UNIT_ID}: {UNIT_NAME}", 
-    page_icon=UNIT_ICON, 
-    layout="centered",
-    initial_sidebar_state="collapsed"
-)
-
-# --- CSS 手機版面優化 ---
+# --- CSS 手機版面優化 (參照 Unit 31-40 風格) ---
 st.markdown("""
     <style>
-    /* 全域字體優化 */
-    body { font-family: "Helvetica Neue", Arial, sans-serif; }
-    
-    /* 標題置中 */
-    h1, h2, h3 { text-align: center; color: #2C3E50; }
-    
-    /* 大按鈕樣式 (手機好點擊) */
-    .stButton>button {
-        width: 100%;
-        border-radius: 15px;
-        font-size: 22px; /* 字體加大 */
-        font-weight: bold;
-        background-color: #FFD54F; /* 活潑黃 */
-        color: #3E2723;
-        border: none;
-        padding: 15px 0px; /* 增加高度 */
-        margin-top: 10px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: all 0.2s;
-    }
-    .stButton>button:hover {
-        background-color: #FFCA28;
-        transform: translateY(-2px);
+    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+    .source-tag { font-size: 12px; color: #aaa; text-align: right; font-style: italic; }
+    .morph-tag { 
+        background-color: #FFCCBC; color: #BF360C; 
+        padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: bold;
+        display: inline-block; margin-right: 5px;
     }
     
-    /* 單字卡片樣式 */
+    /* 單字卡 - 手機友善 */
     .word-card {
-        background: linear-gradient(145deg, #ffffff, #f0f2f5);
+        background: linear-gradient(135deg, #FFEBEE 0%, #ffffff 100%);
         padding: 20px;
-        border-radius: 20px;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         text-align: center;
         margin-bottom: 15px;
-        border: 1px solid #e0e0e0;
-        box-shadow: 3px 3px 10px rgba(0,0,0,0.05);
+        border-bottom: 4px solid #FF7043;
     }
-    .emoji-icon { font-size: 55px; margin-bottom: 5px; }
-    .amis-text { font-size: 26px; font-weight: bold; color: #1565C0; margin-bottom: 0px; }
-    .zh-text { font-size: 18px; color: #546E7A; }
+    .emoji-icon { font-size: 48px; margin-bottom: 10px; }
+    .amis-text { font-size: 24px; font-weight: bold; color: #D84315; } /* 字體加大 */
+    .chinese-text { font-size: 18px; color: #7f8c8d; }
     
-    /* 句子框樣式 */
+    /* 句子框 */
     .sentence-box {
-        background-color: #E3F2FD;
+        background-color: #FFEBEE;
+        border-left: 5px solid #FF7043;
         padding: 15px;
-        border-radius: 15px;
-        margin-bottom: 15px;
-        border-left: 6px solid #2196F3;
+        margin: 10px 0;
+        border-radius: 0 10px 10px 0;
+    }
+
+    /* 按鈕 - 手機好點擊 (加高) */
+    .stButton>button {
+        width: 100%; 
+        border-radius: 12px; 
+        font-size: 22px; 
+        font-weight: 600;
+        background-color: #FFCCBC; 
+        color: #BF360C; 
+        border: 2px solid #D84315; 
+        padding: 15px 12px; /* 增加高度 */
+        margin-top: 10px;
+    }
+    .stButton>button:hover { background-color: #FFAB91; border-color: #BF360C; }
+    .stProgress > div > div > div > div { background-color: #D84315; }
+    
+    /* 選項按鈕優化 */
+    div[role="radiogroup"] > label > div:first-of-type {
+        display: none; /* 隱藏原本的圈圈，改用按鈕樣式 (Streamlit原生限制較多，此為輔助) */
     }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 語音播放模組 (支援 m4a/mp3/TTS) ---
-def play_audio(text, filename_base=None):
-    if filename_base:
-        # 優先搜尋預錄好的音檔
-        for ext in ['m4a', 'mp3']:
-            path = f"audio/{filename_base}.{ext}"
-            if os.path.exists(path):
-                mime = 'audio/mp4' if ext == 'm4a' else 'audio/mp3'
-                st.audio(path, format=mime)
-                return
+# --- 2. 資料庫 (Unit 1: 身體部位) ---
+vocab_data = [
+    {"amis": "Fongoh", "chi": "頭", "icon": "🙆‍♂️", "source": "Unit 1", "morph": "Noun"},
+    {"amis": "Mata", "chi": "眼睛", "icon": "👀", "source": "Unit 1", "morph": "Noun"},
+    {"amis": "Ngoso'", "chi": "鼻子", "icon": "👃", "source": "Unit 1", "morph": "Noun"},
+    {"amis": "Tangila", "chi": "耳朵", "icon": "👂", "source": "Unit 1", "morph": "Noun"},
+    {"amis": "Ngoyos", "chi": "嘴巴", "icon": "👄", "source": "Unit 1", "morph": "Noun"},
+    {"amis": "Pising", "chi": "臉 / 臉頰", "icon": "😊", "source": "Unit 1", "morph": "Noun"},
+    {"amis": "Fokes", "chi": "頭髮", "icon": "💇", "source": "Ext.", "morph": "Noun"},
+    {"amis": "Tireng", "chi": "身體", "icon": "💪", "source": "Ext.", "morph": "Noun"},
+    {"amis": "Kamay", "chi": "手", "icon": "✋", "source": "Ext.", "morph": "Noun"},
+    {"amis": "Wa'ay", "chi": "腳", "icon": "🦶", "source": "Ext.", "morph": "Noun"},
+]
 
-    # 若無音檔，使用 Google TTS (印尼語口音近似)
-    try:
-        tts = gTTS(text=text, lang='id')
-        fp = BytesIO()
-        tts.write_to_fp(fp)
-        fp.seek(0)
-        st.audio(fp, format='audio/mp3')
-    except:
-        st.caption("🔇 (語音生成失敗)")
+# --- 句子庫 ---
+sentences = [
+    {"amis": "O maan koni?", "chi": "這是什麼？", "icon": "❓", "source": "Unit 1"},
+    {"amis": "O mata koni.", "chi": "這是眼睛。", "icon": "👀", "source": "Unit 1"},
+    {"amis": "Piti'en ko mata.", "chi": "閉上眼睛。", "icon": "😌", "source": "Unit 1"},
+    {"amis": "Dihdihen ko pising.", "chi": "摸摸臉頰。", "icon": "👉", "source": "Unit 1"},
+    {"amis": "Adada ko fongoh.", "chi": "頭痛。", "icon": "🤕", "source": "Ext."},
+]
 
-# --- 題目生成引擎 (隨機出題邏輯) ---
-def generate_quiz_questions():
-    """從單字和句子中隨機產生 3 題"""
-    questions = []
-    vocab_keys = list(VOCABULARY.keys())
-    
-    # 1. 確保有足夠單字
-    if len(vocab_keys) < 3:
-        return []
+# --- 3. 隨機題庫 (包含聽力、字義) ---
+raw_quiz_pool = [
+    {
+        "q": "O maan koni? (看圖回答)",
+        "audio": "O maan koni?",
+        "options": ["O mata (是眼睛)", "O ngoso' (是鼻子)", "O fongoh (是頭)"],
+        "ans": "O mata (是眼睛)",
+        "hint": "Mata = 眼睛"
+    },
+    {
+        "q": "單字測驗：Tangila",
+        "audio": "Tangila",
+        "options": ["耳朵", "嘴巴", "手"],
+        "ans": "耳朵",
+        "hint": "用來聽聲音的部位"
+    },
+    {
+        "q": "單字測驗：Ngoyos",
+        "audio": "Ngoyos",
+        "options": ["嘴巴", "鼻子", "臉"],
+        "ans": "嘴巴",
+        "hint": "吃東西的地方"
+    },
+    {
+        "q": "Piti'en ko mata.",
+        "audio": "Piti'en ko mata",
+        "options": ["閉上眼睛", "張開眼睛", "摸摸眼睛"],
+        "ans": "閉上眼睛",
+        "hint": "Piti'en = 閉上"
+    },
+    {
+        "q": "單字測驗：Fongoh",
+        "audio": "Fongoh",
+        "options": ["頭", "頭髮", "脖子"],
+        "ans": "頭",
+        "hint": "最上面的部位"
+    },
+    {
+        "q": "Dihdihen ko pising.",
+        "audio": "Dihdihen ko pising",
+        "options": ["摸摸臉頰", "洗洗臉", "拍拍手"],
+        "ans": "摸摸臉頰",
+        "hint": "Dihdihen = 按摩/摸"
+    }
+]
 
-    # 題型 A: 聽單字 -> 選中文 (1題)
-    target_word = random.choice(vocab_keys)
-    distractors = random.sample([k for k in vocab_keys if k != target_word], 2)
-    options = [target_word] + distractors
-    random.shuffle(options)
-    
-    questions.append({
-        "type": "vocab_audio",
-        "question": "👂 請聽語音，選出正確的意思：",
-        "audio_text": target_word,
-        "audio_file": VOCABULARY[target_word].get('file'),
-        "correct_answer": VOCABULARY[target_word]['zh'],
-        "options": [VOCABULARY[opt]['zh'] for opt in options], # 選項顯示中文
-        "hint": f"{target_word} 是 {VOCABULARY[target_word]['zh']}"
-    })
-
-    # 題型 B: 看中文/圖 -> 選阿美語 (1題)
-    target_word_2 = random.choice([k for k in vocab_keys if k != target_word]) # 避免重複
-    distractors_2 = random.sample([k for k in vocab_keys if k != target_word_2], 2)
-    options_2 = [target_word_2] + distractors_2
-    random.shuffle(options_2)
-
-    questions.append({
-        "type": "vocab_visual",
-        "question": f"👁️ 請問 **{VOCABULARY[target_word_2]['emoji']} {VOCABULARY[target_word_2]['zh']}** 的阿美語是？",
-        "correct_answer": target_word_2,
-        "options": options_2, # 選項顯示阿美語
-        "hint": f"{VOCABULARY[target_word_2]['zh']} 是 {target_word_2}"
-    })
-
-    # 題型 C: 聽句子 -> 選中文 (1題)
-    if SENTENCES:
-        target_sent = random.choice(SENTENCES)
-        # 產生錯誤選項：隨機抓其他句子的中文，若不夠則補假選項
-        other_sents_zh = [s['zh'] for s in SENTENCES if s != target_sent]
-        if len(other_sents_zh) >= 2:
-            distractors_sent = random.sample(other_sents_zh, 2)
-        else:
-            distractors_sent = ["(其他意思)", "(聽不懂)"]
-            
-        options_sent = [target_sent['zh']] + distractors_sent
-        random.shuffle(options_sent)
-
-        questions.append({
-            "type": "sentence_audio",
-            "question": "👂 請聽句子，選出正確的意思：",
-            "audio_text": target_sent['amis'],
-            "audio_file": target_sent.get('file'),
-            "correct_answer": target_sent['zh'],
-            "options": options_sent,
-            "hint": f"{target_sent['amis']} \n 意思是：{target_sent['zh']}"
-        })
-    
-    return questions
-
-# --- 初始化 Session State ---
+# --- 4. 狀態初始化 (洗牌邏輯：一次抽 3 題) ---
 if 'init' not in st.session_state:
     st.session_state.score = 0
     st.session_state.current_q_idx = 0
-    st.session_state.quiz_data = generate_quiz_questions()
+    st.session_state.quiz_id = str(random.randint(1000, 9999))
+    
+    # 這裡依照您的指示：一次出 3 題
+    selected_questions = random.sample(raw_quiz_pool, 3)
+    final_questions = []
+    for q in selected_questions:
+        q_copy = q.copy()
+        shuffled_opts = random.sample(q['options'], len(q['options']))
+        q_copy['shuffled_options'] = shuffled_opts
+        final_questions.append(q_copy)
+        
+    st.session_state.quiz_questions = final_questions
     st.session_state.init = True
 
-# --- 頁面 1: 學習模式 ---
-def show_learning_mode():
-    st.markdown(f"## 📖 學習: {UNIT_NAME}")
-    
-    tab1, tab2 = st.tabs(["🔤 核心單字", "🗣️ 實用句型"])
-    
-    with tab1:
-        # 手機版面：使用 columns(2) 會自動在小螢幕變成直排，但在平板會並排
-        cols = st.columns(2)
-        for i, (amis, data) in enumerate(VOCABULARY.items()):
-            with cols[i % 2]:
-                st.markdown(f"""
-                <div class="word-card">
-                    <div class="emoji-icon">{data['emoji']}</div>
-                    <div class="amis-text">{amis}</div>
-                    <div class="zh-text">{data['zh']}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                if st.button(f"🔊 播放", key=f"btn_vocab_{i}"):
-                    play_audio(amis, data.get('file'))
+# --- 5. 主介面 (Tabs 設計) ---
+st.markdown("<h1 style='text-align: center; color: #D84315;'>Unit 1: O Tireng</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #666;'>我的身體 (手機版面)</p>", unsafe_allow_html=True)
 
-    with tab2:
-        for i, sent in enumerate(SENTENCES):
+# 這裡使用 Tabs，這是您最習慣的 31-40 設計方式
+tab1, tab2 = st.tabs(["📚 詞彙與句型", "🎲 隨機挑戰"])
+
+# === Tab 1: 學習模式 ===
+with tab1:
+    st.subheader("📝 核心單字")
+    # 手機上 columns(2) 會自動並排或堆疊，視螢幕寬度而定
+    col1, col2 = st.columns(2)
+    for i, word in enumerate(vocab_data):
+        with (col1 if i % 2 == 0 else col2):
             st.markdown(f"""
-            <div class="sentence-box">
-                <p style="font-size:22px; font-weight:bold; color:#1565C0; margin:0;">{sent['amis']}</p>
-                <p style="color:#546E7A; margin:5px 0 0 0; font-size:18px;">{sent['zh']}</p>
+            <div class="word-card">
+                <div class="emoji-icon">{word['icon']}</div>
+                <div class="amis-text">{word['amis']}</div>
+                <div class="chinese-text">{word['chi']}</div>
+                <div class="morph-tag">{word['morph']}</div>
             </div>
             """, unsafe_allow_html=True)
-            if st.button(f"▶️ 播放句子 {i+1}", key=f"btn_sent_{i}"):
-                play_audio(sent['amis'], sent.get('file'))
+            if st.button(f"🔊", key=f"btn_vocab_{i}"):
+                safe_play_audio(word['amis'])
 
-# --- 頁面 2: 測驗模式 ---
-def show_quiz_mode():
-    st.markdown(f"## 🎮 隨機挑戰 (共3題)")
-    
-    # 檢查是否完成所有題目
-    if st.session_state.current_q_idx >= len(st.session_state.quiz_data):
+    st.markdown("---")
+    st.subheader("🗣️ 實用句型")
+    for i, s in enumerate(sentences):
         st.markdown(f"""
-        <div style='text-align: center; padding: 40px; background-color: #E8F5E9; border-radius: 20px; margin-top: 20px;'>
-            <h1 style='color: #2E7D32;'>🎉 挑戰完成！</h1>
-            <h2 style='color: #1B5E20;'>得分：{st.session_state.score} / {len(st.session_state.quiz_data) * 100}</h2>
+        <div class="sentence-box">
+            <div style="font-size: 20px; font-weight: bold; color: #D84315;">{s['icon']} {s['amis']}</div>
+            <div style="font-size: 16px; color: #555; margin-top: 5px;">{s['chi']}</div>
         </div>
         """, unsafe_allow_html=True)
+        if st.button(f"▶️ 播放", key=f"btn_sent_{i}"):
+            safe_play_audio(s['amis'])
+
+# === Tab 2: 隨機挑戰模式 (3題) ===
+with tab2:
+    st.markdown("### 🎲 隨機評量 (共3題)")
+    
+    if st.session_state.current_q_idx < len(st.session_state.quiz_questions):
+        q_data = st.session_state.quiz_questions[st.session_state.current_q_idx]
         
-        if st.button("🔄 再玩一次 (重新抽題)"):
-            st.session_state.score = 0
-            st.session_state.current_q_idx = 0
-            st.session_state.quiz_data = generate_quiz_questions()
-            st.rerun()
-        return
+        # 進度條 (分母為 3)
+        st.progress((st.session_state.current_q_idx) / 3)
+        st.markdown(f"**第 {st.session_state.current_q_idx + 1} 題**")
+        
+        st.info(f"### {q_data['q']}")
+        if q_data['audio']:
+            if st.button("🎧 播放題目音檔", key=f"btn_audio_{st.session_state.current_q_idx}"):
+                safe_play_audio(q_data['audio'])
+        
+        # 使用洗牌後的選項
+        unique_key = f"q_{st.session_state.quiz_id}_{st.session_state.current_q_idx}"
+        user_choice = st.radio("請選擇正確答案：", q_data['shuffled_options'], key=unique_key)
+        
+        st.markdown("<br>", unsafe_allow_html=True) # 增加間距
 
-    # 取得當前題目
-    q_data = st.session_state.quiz_data[st.session_state.current_q_idx]
-    
-    # 顯示進度
-    progress = (st.session_state.current_q_idx + 1) / len(st.session_state.quiz_data)
-    st.progress(progress)
-    st.caption(f"第 {st.session_state.current_q_idx + 1} 題")
-
-    # 顯示題目內容
-    st.info(q_data['question'])
-    
-    # 如果有音檔或語音
-    if 'audio_text' in q_data:
-        if st.button("🎧 播放聲音 (點擊收聽)", key=f"play_q_{st.session_state.current_q_idx}"):
-            play_audio(q_data['audio_text'], q_data.get('audio_file'))
-
-    st.write("") # 空行間距
-
-    # 顯示選項 (手機版直排)
-    for opt in q_data['options']:
-        # 使用 callback 處理點擊，避免邏輯複雜
-        def check_answer(selected_opt=opt):
-            if selected_opt == q_data['correct_answer']:
-                st.session_state.score += 100
-                st.balloons()
-                st.success("✅ 答對了！")
-            else:
-                st.error(f"❌ 答錯了！\n\n提示：{q_data['hint']}")
-            
-            time.sleep(1.5) # 讓使用者看到結果
-            st.session_state.current_q_idx += 1
-            
-        st.button(opt, on_click=check_answer, key=f"opt_{st.session_state.current_q_idx}_{opt}")
-
-# --- 主程式切換 ---
-mode = st.sidebar.radio("功能選單", ["📖 學習模式", "🎮 隨機測驗"])
-
-if mode == "📖 學習模式":
-    show_learning_mode()
-else:
-    show_quiz_mode()
+        if st.button("送出答案", key
