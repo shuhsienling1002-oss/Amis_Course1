@@ -1,252 +1,325 @@
 import streamlit as st
 import time
-import random
 from gtts import gTTS
 from io import BytesIO
 
 # ==========================================
-# 1. 系統層 (System Layer) - 配置與 CSS
+# 1. 系統核心配置 (System Kernel)
 # ==========================================
 st.set_page_config(
-    page_title="Pangcah 小教室",
+    page_title="Pangcah阿美語小教室 Pro",
     page_icon="☀️",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-def inject_custom_css():
+# --- CSS 注入：打造原生 App 級別的視覺層次 ---
+def inject_pro_css():
     st.markdown("""
     <style>
-    /* --- 全局字體與背景 (Mobile Friendly) --- */
-    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Fredoka:wght@500&display=swap');
-    
+    /* 引入圓體字型，增加親和力 */
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&family=Varela+Round&display=swap');
+
     .stApp {
-        background: linear-gradient(160deg, #fdfbfb 0%, #ebedee 100%);
+        background-color: #f4f7f6;
         font-family: 'Noto Sans TC', sans-serif;
     }
 
-    /* --- 隱藏 Streamlit 原生元素 --- */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    header {visibility: hidden;}
+    /* 隱藏干擾元素 */
+    #MainMenu, footer, header {visibility: hidden;}
     
-    /* --- 容器優化 --- */
+    /* 手機視圖容器優化 */
     .block-container {
-        padding-top: 2rem !important;
-        padding-bottom: 5rem !important;
-        max-width: 500px; /* 限制寬度，模擬手機視窗 */
+        padding-top: 1rem !important;
+        padding-bottom: 4rem !important;
+        max-width: 480px; /* 嚴格限制寬度，模擬手機 */
     }
 
-    /* --- 卡片組件 (Neumorphism / Soft UI) --- */
-    .word-card {
-        background: #ffffff;
-        border-radius: 24px;
+    /* --- 組件：教學卡片 (Learning Card) --- */
+    .learn-card {
+        background: white;
+        border-radius: 20px;
         padding: 20px;
-        margin-bottom: 16px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
-        border: 1px solid #f0f0f0;
-        text-align: center;
+        margin-bottom: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border-left: 6px solid #FFD700; /* 阿美族代表色點綴 */
         transition: transform 0.2s;
     }
-    .word-card:active {
-        transform: scale(0.98);
-    }
+    .learn-card:hover { transform: translateY(-2px); }
     
-    .emoji-big { font-size: 48px; margin-bottom: 8px; }
-    .text-amis { font-family: 'Fredoka', sans-serif; font-size: 28px; font-weight: 600; color: #2c3e50; }
-    .text-zh { font-size: 16px; color: #95a5a6; margin-bottom: 12px; }
-    .action-tag { 
-        background: #e3f2fd; color: #1976d2; 
-        padding: 4px 12px; border-radius: 20px; 
-        font-size: 12px; font-weight: bold;
-        display: inline-block;
+    .card-header { display: flex; align-items: center; justify-content: space-between; }
+    .card-emoji { font-size: 40px; }
+    .card-title { font-size: 24px; font-weight: 800; color: #333; font-family: 'Varela Round'; }
+    .card-sub { font-size: 16px; color: #666; font-weight: 500; }
+    .card-action { 
+        background: #e0f7fa; color: #006064; 
+        padding: 4px 10px; border-radius: 12px; 
+        font-size: 12px; font-weight: bold; margin-top: 8px; display: inline-block;
     }
 
-    /* --- 按鈕優化 (Fitts's Law) --- */
+    /* --- 組件：句型氣泡 (Sentence Bubble) --- */
+    .sentence-box {
+        background: #fff;
+        border-radius: 18px;
+        padding: 15px;
+        margin: 10px 0;
+        border: 2px solid #eee;
+        position: relative;
+    }
+    .sentence-amis { color: #2E86C1; font-weight: bold; font-size: 18px; }
+    .sentence-zh { color: #888; font-size: 14px; margin-top: 4px; }
+
+    /* --- 組件：交互按鈕 (Interactive Button) --- */
     .stButton > button {
         width: 100%;
-        height: 55px;
-        border-radius: 16px;
+        border-radius: 50px; /* 膠囊型按鈕 */
+        height: 54px;
         font-size: 18px;
         font-weight: bold;
         border: none;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         transition: all 0.2s;
     }
+    /* 主要操作按鈕 */
+    div[data-testid="stVerticalBlock"] > div > div > div > div > .stButton > button {
+        background: linear-gradient(90deg, #FFD700 0%, #FFC107 100%);
+        color: #333;
+    }
     
-    /* 答題按鈕特效 */
-    .stButton > button:active {
-        transform: scale(0.96);
-    }
-
-    /* --- 頂部狀態列 --- */
-    .stats-container {
-        display: flex;
-        justify-content: space-between;
-        background: white;
-        padding: 10px 20px;
-        border-radius: 15px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.03);
-    }
-    .stat-item { font-weight: bold; color: #555; }
-    .stat-value { color: #FFD700; font-size: 1.2em; }
+    /* 進度條顏色 */
+    .stProgress > div > div > div > div { background-color: #2ECC71; }
     </style>
     """, unsafe_allow_html=True)
 
-inject_custom_css()
+inject_pro_css()
 
 # ==========================================
-# 2. 數據與狀態層 (Data & State Layer)
+# 2. 數據結構層 (Data Structure Layer)
 # ==========================================
+# 保留原本的完整結構，並增加 metadata
+VOCABULARY = {
+    "Fongoh":   {"zh": "頭", "emoji": "💆‍♂️", "action": "摸摸頭", "type": "body"},
+    "Mata":     {"zh": "眼睛", "emoji": "👁️", "action": "眨眨眼", "type": "face"},
+    "Ngoso'":   {"zh": "鼻子", "emoji": "👃", "action": "指鼻子", "type": "face"}, 
+    "Tangila":  {"zh": "耳朵", "emoji": "👂", "action": "拉耳朵", "type": "face"},
+    "Ngoyos":   {"zh": "嘴巴", "emoji": "👄", "action": "張開嘴", "type": "face"},
+    "Pising":   {"zh": "臉頰/臉", "emoji": "☺️", "action": "戳臉頰", "type": "face"}
+}
 
-# 詞彙庫 (擴展容易)
-VOCABULARY = [
-    {"amis": "Fongoh", "zh": "頭", "emoji": "💆‍♂️", "action": "摸摸頭"},
-    {"amis": "Mata", "zh": "眼睛", "emoji": "👁️", "action": "眨眨眼"},
-    {"amis": "Ngoso'", "zh": "鼻子", "emoji": "👃", "action": "指鼻子"},
-    {"amis": "Tangila", "zh": "耳朵", "emoji": "👂", "action": "拉耳朵"},
-    {"amis": "Ngoyos", "zh": "嘴巴", "emoji": "👄", "action": "張開嘴"},
-    {"amis": "Pising", "zh": "臉頰", "emoji": "☺️", "action": "戳臉頰"}
+SENTENCES = [
+    {"id": "q_what", "amis": "O maan koni?", "zh": "這是什麼？", "type": "question"},
+    {"id": "a_mata", "amis": "O {word} koni.", "zh": "這是{word}。", "type": "answer"}, 
+    {"id": "cmd_close", "amis": "Piti'en ko mata.", "zh": "閉上眼睛。", "type": "command"},
+    {"id": "cmd_touch", "amis": "Dihdihen ko pising.", "zh": "摸摸臉頰。", "type": "command"}
 ]
 
-# 初始化 Session State
-if 'xp' not in st.session_state: st.session_state.xp = 0
-if 'level' not in st.session_state: st.session_state.level = 1
-if 'streak' not in st.session_state: st.session_state.streak = 0
-if 'quiz_mode' not in st.session_state: st.session_state.quiz_mode = False
-if 'current_q' not in st.session_state: st.session_state.current_q = None
-
 # ==========================================
-# 3. 資源層 (Resource Layer) - 緩存與音頻
+# 3. 核心邏輯層 (Core Logic & Cache)
 # ==========================================
 
-@st.cache_data(show_spinner=False)
-def get_audio_bytes(text, lang='id'):
-    """
-    使用緩存機制生成音頻，避免重複調用 API。
-    選用 'id' (印尼語) 是因為發音結構與阿美語較接近。
-    """
-    try:
-        tts = gTTS(text=text, lang=lang)
-        fp = BytesIO()
-        tts.write_to_fp(fp)
-        fp.seek(0)
-        return fp.read()
-    except:
-        return None
-
-def play_audio_native(text):
-    """使用 Streamlit 原生播放器 (最穩定)"""
-    audio_bytes = get_audio_bytes(text)
-    if audio_bytes:
-        # autoplay=True 需要 Streamlit 1.33+
-        st.audio(audio_bytes, format='audio/mp3', autoplay=True)
-
-# ==========================================
-# 4. 組件層 (Component Layer)
-# ==========================================
-
-def render_header():
-    """顯示頂部狀態欄"""
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown(f"🏆 Lv.{st.session_state.level}")
-    with col2:
-        st.markdown(f"🔥 連勝 {st.session_state.streak}")
-    with col3:
-        st.markdown(f"⭐ XP {st.session_state.xp}")
-    st.progress(min((st.session_state.xp % 100) / 100, 1.0))
-
-def render_word_card(word_data):
-    """渲染單詞卡片"""
-    st.markdown(f"""
-    <div class="word-card">
-        <div class="emoji-big">{word_data['emoji']}</div>
-        <div class="text-amis">{word_data['amis']}</div>
-        <div class="text-zh">{word_data['zh']}</div>
-        <div class="action-tag">動作：{word_data['action']}</div>
-    </div>
-    """, unsafe_allow_html=True)
+class AudioManager:
+    """音頻管理單元：負責生成、緩存與播放"""
     
-    # 播放按鈕 (全寬)
-    if st.button(f"🔊 聽發音 ({word_data['amis']})", key=f"btn_{word_data['amis']}"):
-        play_audio_native(word_data['amis'])
+    @staticmethod
+    @st.cache_data(show_spinner=False)
+    def generate_audio(text, lang='id'):
+        """生成音頻二進制數據並緩存"""
+        try:
+            tts = gTTS(text=text, lang=lang)
+            fp = BytesIO()
+            tts.write_to_fp(fp)
+            fp.seek(0)
+            return fp.read()
+        except:
+            return None
 
-# ==========================================
-# 5. 業務邏輯層 (Logic Layer)
-# ==========================================
+    @staticmethod
+    def play(text, key_suffix=""):
+        """播放接口"""
+        audio_data = AudioManager.generate_audio(text)
+        if audio_data:
+            # 使用 key 避免組件衝突
+            st.audio(audio_data, format='audio/mp3', start_time=0)
 
-def tab_learning():
-    """學習模式"""
-    st.markdown("### 📖 單詞卡")
+class QuizEngine:
+    """測驗狀態機：管理關卡邏輯"""
     
-    # 使用網格佈局 (手機上會自動變單列)
-    for word in VOCABULARY:
-        render_word_card(word)
+    @staticmethod
+    def init_state():
+        if 'quiz_step' not in st.session_state: st.session_state.quiz_step = 0
+        if 'score' not in st.session_state: st.session_state.score = 0
+        if 'feedback' not in st.session_state: st.session_state.feedback = None
 
-def tab_quiz():
-    """測驗模式 (遊戲化核心)"""
-    st.markdown("### ⚔️ 小勇士挑戰")
-    
-    if st.button("🎲 開始新挑戰 / 下一題", type="primary"):
-        st.session_state.current_q = random.choice(VOCABULARY)
-        # 清除之前的音頻播放狀態 (透過 rerun)
+    @staticmethod
+    def next_step(points=0):
+        st.session_state.score += points
+        st.session_state.quiz_step += 1
         st.rerun()
 
-    if st.session_state.current_q:
-        q = st.session_state.current_q
+    @staticmethod
+    def reset():
+        st.session_state.quiz_step = 0
+        st.session_state.score = 0
+        st.session_state.feedback = None
+        st.rerun()
+
+QuizEngine.init_state()
+
+# ==========================================
+# 4. 視圖層 (View Layer) - 模組化渲染
+# ==========================================
+
+def render_learning_mode():
+    """學習模式：展示單詞與句型"""
+    st.markdown("### 📚 Unit 1: 我的身體")
+    st.info("💡 點擊卡片上的按鈕聆聽發音")
+
+    # --- Part 1: 單詞卡片流 ---
+    for amis, data in VOCABULARY.items():
+        col_text, col_btn = st.columns([3, 1])
         
+        # 使用 HTML 構建精美卡片
         st.markdown(f"""
-        <div style="text-align:center; padding: 20px;">
-            <h3>請聽音頻，選擇正確的意思</h3>
-            <div style="font-size: 60px;">🔊</div>
+        <div class="learn-card">
+            <div class="card-header">
+                <div>
+                    <div class="card-emoji">{data['emoji']}</div>
+                    <div class="card-title">{amis}</div>
+                    <div class="card-sub">{data['zh']}</div>
+                    <div class="card-action">動作：{data['action']}</div>
+                </div>
+            </div>
         </div>
         """, unsafe_allow_html=True)
         
-        # 自動播放題目音頻
-        play_audio_native(q['amis'])
+        # 獨立的播放按鈕，避免重繪整個卡片
+        if st.button(f"🔊", key=f"btn_learn_{amis}"):
+            AudioManager.play(amis)
+
+    st.markdown("---")
+    st.markdown("### 🗣️ 句型對話練習")
+
+    # --- Part 2: 句型對話流 ---
+    # Q: 這是什麼？
+    s1 = SENTENCES[0]
+    st.markdown(f"""
+    <div class="sentence-box" style="border-left: 5px solid #3498DB;">
+        <div class="sentence-amis">Q: {s1['amis']}</div>
+        <div class="sentence-zh">{s1['zh']}</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("🔊 播放問句", key="btn_s1"): AudioManager.play(s1['amis'])
+
+    # A: 這是眼睛
+    s2_text = SENTENCES[1]['amis'].format(word="Mata")
+    st.markdown(f"""
+    <div class="sentence-box" style="border-left: 5px solid #F1C40F;">
+        <div class="sentence-amis">A: {s2_text}</div>
+        <div class="sentence-zh">這是眼睛。</div>
+    </div>
+    """, unsafe_allow_html=True)
+    if st.button("🔊 播放答句", key="btn_s2"): AudioManager.play(s2_text)
+
+def render_quiz_mode():
+    """測驗模式：狀態機驅動的闖關體驗"""
+    
+    # 進度條
+    total_steps = 3
+    progress = min(st.session_state.quiz_step / total_steps, 1.0)
+    st.progress(progress)
+    
+    step = st.session_state.quiz_step
+
+    # --- 狀態 0: 聽力辨識 (單詞) ---
+    if step == 0:
+        st.markdown("### 👂 第 1 關：聽音辨位")
+        st.markdown("請聽語音，選出正確的身體部位：")
         
-        # 生成選項 (1個正確 + 2個干擾)
-        options = [q]
-        distractors = [w for w in VOCABULARY if w['amis'] != q['amis']]
-        options.extend(random.sample(distractors, 2))
-        random.shuffle(options)
+        target = "Tangila" # 耳朵
         
-        # 顯示選項
+        # 自動播放 (UX 優化：進入關卡自動讀題)
+        st.caption("正在播放題目...")
+        AudioManager.play(target, key_suffix="q1")
+        
+        st.write("") # Spacer
+        
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            if st.button("👃 鼻子", key="q1_opt1"): st.error("那是 Ngoso' 喔！")
+        with c2:
+            if st.button("👂 耳朵", key="q1_opt2"): 
+                st.toast("✅ 答對了！ Tangila 是耳朵", icon="🎉")
+                time.sleep(1)
+                QuizEngine.next_step(100)
+        with c3:
+            if st.button("👁️ 眼睛", key="q1_opt3"): st.error("那是 Mata 喔！")
+
+    # --- 狀態 1: 句型填空 (邏輯) ---
+    elif step == 1:
+        st.markdown("### 🧩 第 2 關：句型填空")
+        st.markdown("當別人問：**O maan koni?** (這是什麼？)")
+        st.markdown("你要回答：**O ______ koni.** (指著嘴巴 👄)")
+        
+        st.image("https://tw.pseg.com/wp-content/uploads/2020/06/mouth-icon.png", width=100) # 示意圖
+        
+        options = ["Fongoh (頭)", "Ngoyos (嘴巴)", "Pising (臉)"]
+        choice = st.radio("請選擇正確的單詞：", options)
+        
+        if st.button("送出答案", key="q2_submit"):
+            if "Ngoyos" in choice:
+                st.balloons()
+                st.success("Correct! O Ngoyos koni.")
+                time.sleep(1.5)
+                QuizEngine.next_step(100)
+            else:
+                st.error("再想一下，嘴巴是哪個詞？")
+
+    # --- 狀態 2: TPR 全身反應 (指令) ---
+    elif step == 2:
+        st.markdown("### 🏃 第 3 關：我是小隊長")
+        st.markdown("聽到指令後，請確認動作：")
+        
+        cmd = "Dihdihen ko pising"
+        st.markdown(f"<h2 style='text-align:center; color:#E74C3C'>{cmd}</h2>", unsafe_allow_html=True)
+        
+        if st.button("🔊 播放指令", key="btn_q3_audio"):
+            AudioManager.play(cmd)
+            
+        st.info("這個指令是什麼意思？")
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("摸摸頭", key="q3_opt1"): st.error("不對喔，Fongoh 才是頭")
+        with col2:
+            if st.button("摸摸臉頰", key="q3_opt2"):
+                st.snow()
+                QuizEngine.next_step(100)
+
+    # --- 狀態 3: 結算畫面 ---
+    else:
+        st.markdown(f"""
+        <div style="background:#FFF8E1; padding:30px; border-radius:20px; text-align:center; border: 2px dashed #FFC107;">
+            <h1>🏆 挑戰成功！</h1>
+            <h2 style="color:#D35400">總分：{st.session_state.score} / 300</h2>
+            <p>你的阿美語越來越厲害了！</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
         st.write("")
-        cols = st.columns(3)
-        for i, opt in enumerate(options):
-            # 手機上 columns 會變窄，這裡直接用按鈕
-            if st.button(f"{opt['emoji']} {opt['zh']}", key=f"quiz_{i}"):
-                if opt['amis'] == q['amis']:
-                    st.toast("🎉 答對了！+20 XP", icon="✅")
-                    st.session_state.xp += 20
-                    st.session_state.streak += 1
-                    st.balloons()
-                    
-                    # 升級邏輯
-                    if st.session_state.xp >= st.session_state.level * 100:
-                        st.session_state.level += 1
-                        st.toast(f"🆙 升級了！現在是 Lv.{st.session_state.level}", icon="🚀")
-                    
-                    time.sleep(1)
-                    st.rerun()
-                else:
-                    st.toast("😢 答錯了，連勝中斷...", icon="❌")
-                    st.session_state.streak = 0
-                    st.error(f"正確答案是：{q['zh']} ({q['amis']})")
+        if st.button("🔄 再玩一次", key="btn_restart"):
+            QuizEngine.reset()
 
 # ==========================================
-# 6. 主程式入口 (Main Entry)
+# 5. 主程式入口 (Main Entry)
 # ==========================================
 
-render_header()
+st.title("Pangcah 小教室 ☀️")
 
-tab1, tab2 = st.tabs(["📚 學習單詞", "🎯 聽力測驗"])
+# 使用 Tabs 保持結構清晰，但內容不減
+tab1, tab2 = st.tabs(["📖 學習模式", "⚔️ 闖關挑戰"])
 
 with tab1:
-    tab_learning()
+    render_learning_mode()
 
 with tab2:
-    tab_quiz()
+    render_quiz_mode()
