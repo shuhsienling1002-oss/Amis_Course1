@@ -1,4 +1,2 @@
 streamlit
 gtts
-streamlit-lottie
-requests
