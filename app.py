@@ -1,14 +1,13 @@
-import tkinter as tk
-from tkinter import messagebox
+import streamlit as st
 import random
+import time
 
 # ==========================================
 # 🧠 Model Layer: 數據結構與內容 (The Knowledge Base)
-# 符合 App-Lexicon-CRF v6.4 規範
+# 符合 App-Lexicon-CRF v6.4 規範 - 嚴格鎖定蔡中涵辭典拼寫 [cite: 36]
 # ==========================================
 class CourseData:
     def __init__(self):
-        #  嚴格校對蔡中涵辭典拼寫
         self.article = {
             "title": "Ci Panay Kako (我是 Panay)",
             "content": """Nga'ay ho, salikaka mapolong.
@@ -22,7 +21,7 @@ Nanay mapalipahak kita mapolong anini a romi'ad.
 Aray, kansya."""
         }
         
-        #  核心詞彙庫
+        # 核心詞彙庫 
         self.vocabulary = [
             {"amis": "Ngangan", "zhtw": "名字", "type": "N"},
             {"amis": "Niyaro'", "zhtw": "部落/村莊", "type": "N"},
@@ -36,148 +35,114 @@ Aray, kansya."""
             {"amis": "Lipahak", "zhtw": "快樂", "type": "Adj"}
         ]
         
-        #  結構化句型
+        # 結構化句型 - 第一性原理 VSO 結構 [cite: 46]
         self.sentences = [
-            {"amis": "Ci Panay ko ngangan ako.", "zhtw": "我的名字是 Panay。"},
-            {"amis": "Nani Makotaay kako.", "zhtw": "我來自 Makotaay。"},
-            {"amis": "Maolah kako a romadiw.", "zhtw": "我喜歡唱歌。"},
-            {"amis": "Maro' kako i Taypak.", "zhtw": "我住在台北。"},
-            {"amis": "Lipahak kako a manengneng i tisowanan.", "zhtw": "很高興見到你。"}
+            {"amis": "Ci Panay ko ngangan ako.", "zhtw": "我的名字是 Panay。", "note": "名詞句結構"},
+            {"amis": "Nani Makotaay kako.", "zhtw": "我來自 Makotaay。", "note": "來源結構"},
+            {"amis": "Maolah kako a romadiw.", "zhtw": "我喜歡唱歌。", "note": "喜好表達"},
+            {"amis": "Maro' kako i Taypak.", "zhtw": "我住在台北。", "note": "位置標記 (i)"},
+            {"amis": "Lipahak kako a manengneng i tisowanan.", "zhtw": "很高興見到你。", "note": "情感表達"}
         ]
 
 # ==========================================
-# 📱 View & Controller Layer: 介面與邏輯 (The App Engine)
-# 符合 Code-CRF v6.4 (SRP 單一職責原則)
+# 📱 View & Controller Layer: Streamlit 介面邏輯
+# 符合 Ops-AI-CRF v6.4 (Headless Solutions) 
 # ==========================================
-class AmisLearningApp:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Amis Master v1.0 - Intro Course")
-        self.root.geometry("500x700")
-        self.data = CourseData()
-        
-        # UI 配置 - 顏色符合阿美族傳統色 (紅/白/黑)
-        self.bg_color = "#f0f0f0"
-        self.primary_color = "#D32F2F" # Amis Red
-        self.text_color = "#212121"
-        self.root.configure(bg=self.bg_color)
-        
-        # 初始化 UI
-        self.setup_home()
+def main():
+    # 設置頁面配置
+    st.set_page_config(page_title="Amis Master - Intro Course", page_icon="🎓")
+    
+    # 初始化數據
+    data = CourseData()
 
-    def clear_screen(self):
-        for widget in self.root.winfo_children():
-            widget.destroy()
+    # 側邊欄導航 (Navigation)
+    st.sidebar.title("Amis Master v1.0")
+    choice = st.sidebar.radio("課程單元 (Unit)", ["🏠 首頁 (Home)", "📖 閱讀文章 (Miasip)", "🔑 核心單詞 (Tilid)", "🗣️ 實戰句型 (Sowal)", "📝 隨堂測驗 (Test)"])
 
     # --- 1. 首頁 (Home) ---
-    def setup_home(self):
-        self.clear_screen()
+    if choice == "🏠 首頁 (Home)":
+        st.title("Nga'ay ho! 👋")
+        st.subheader("阿美語自我介紹課程 (Self-Introduction)")
+        st.write("歡迎來到 Amis Master。本課程將帶領您學會如何用標準的阿美語介紹自己。")
+        st.info("請使用左側選單切換學習模式。")
         
-        tk.Label(self.root, text="Nga'ay ho!", font=("Helvetica", 24, "bold"), bg=self.bg_color, fg=self.primary_color).pack(pady=40)
-        tk.Label(self.root, text="阿美語自我介紹課程", font=("Arial", 14), bg=self.bg_color).pack(pady=10)
-        
-        btn_style = {"font": ("Arial", 12), "width": 25, "height": 2, "bg": "white", "relief": "groove"}
-        
-        tk.Button(self.root, text="📖 閱讀文章 (Miasip)", command=self.show_article, **btn_style).pack(pady=10)
-        tk.Button(self.root, text="🔑 學習單詞 (Tilid)", command=self.show_vocab, **btn_style).pack(pady=10)
-        tk.Button(self.root, text="🗣️ 練習句型 (Sowal)", command=self.show_sentences, **btn_style).pack(pady=10)
-        tk.Button(self.root, text="📝 隨堂測驗 (Test)", command=self.start_quiz, **btn_style, fg="red").pack(pady=10)
+        # EdTech-CRF: 學習動機激勵 [cite: 47]
+        st.markdown("### 🎯 學習目標")
+        st.markdown("- 學會 **10** 個高頻單字")
+        st.markdown("- 掌握 **5** 個 VSO 句型")
+        st.markdown("- 能流暢閱讀 **100** 字短文")
 
     # --- 2. 文章閱讀 (Article) ---
-    def show_article(self):
-        self.clear_screen()
-        tk.Label(self.root, text=self.data.article["title"], font=("Helvetica", 18, "bold"), bg=self.bg_color, fg=self.primary_color).pack(pady=20)
-        
-        text_frame = tk.Frame(self.root, bg="white", padx=15, pady=15)
-        text_frame.pack(fill="both", expand=True, padx=20, pady=10)
-        
-        # [cite: 20] 視覺層級：留白與行距
-        msg = tk.Message(text_frame, text=self.data.article["content"], font=("Georgia", 14), width=400, bg="white", justify="left")
-        msg.pack()
-        
-        tk.Button(self.root, text="回首頁 (Back)", command=self.setup_home, bg="#DDDDDD").pack(pady=20)
+    elif choice == "📖 閱讀文章 (Miasip)":
+        st.header(data.article["title"])
+        st.markdown("---")
+        # 使用區塊引言顯示文章
+        st.markdown(f"> {data.article['content'].replace(chr(10), '  '+chr(10))}")
+        st.caption("試著大聲朗讀看看！(Try to read it aloud!)")
 
-    # --- 3. 單詞卡片 (Vocabulary) ---
-    def show_vocab(self):
-        self.clear_screen()
-        tk.Label(self.root, text="核心單詞 (Vocabulary)", font=("Helvetica", 18, "bold"), bg=self.bg_color).pack(pady=20)
+    # --- 3. 核心單詞 (Vocabulary) ---
+    elif choice == "🔑 核心單詞 (Tilid)":
+        st.header("核心單詞 (Vocabulary)")
         
-        list_frame = tk.Frame(self.root, bg=self.bg_color)
-        list_frame.pack(fill="both", expand=True, padx=20)
-        
-        scrollbar = tk.Scrollbar(list_frame)
-        scrollbar.pack(side="right", fill="y")
-        
-        canvas = tk.Canvas(list_frame, bg=self.bg_color, yscrollcommand=scrollbar.set)
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.config(command=canvas.yview)
-        
-        inner_frame = tk.Frame(canvas, bg=self.bg_color)
-        canvas.create_window((0, 0), window=inner_frame, anchor="nw")
-        
-        for idx, word in enumerate(self.data.vocabulary):
-            # [cite: 20] 拇指熱區與卡片式設計
-            card = tk.Frame(inner_frame, bg="white", bd=1, relief="solid", padx=10, pady=10)
-            card.pack(fill="x", pady=5, padx=5)
-            tk.Label(card, text=f"{idx+1}. {word['amis']}", font=("Arial", 14, "bold"), bg="white", fg=self.primary_color).pack(side="left")
-            tk.Label(card, text=f"({word['type']}) {word['zhtw']}", font=("Arial", 12), bg="white").pack(side="right")
-        
-        inner_frame.update_idletasks()
-        canvas.config(scrollregion=canvas.bbox("all"))
-        
-        tk.Button(self.root, text="回首頁", command=self.setup_home).pack(pady=10)
+        # 使用 Streamlit 的列佈局 (Columns) 呈現卡片效果
+        for word in data.vocabulary:
+            with st.expander(f"**{word['amis']}** ({word['type']})"):
+                st.markdown(f"### {word['zhtw']}")
+                st.caption("請注意重音與喉塞音 (') 的發音。")
 
-    # --- 4. 句型練習 (Sentences) ---
-    def show_sentences(self):
-        self.clear_screen()
-        tk.Label(self.root, text="實戰句型 (Sentences)", font=("Helvetica", 18, "bold"), bg=self.bg_color).pack(pady=20)
+    # --- 4. 實戰句型 (Sentences) ---
+    elif choice == "🗣️ 實戰句型 (Sowal)":
+        st.header("實戰句型 (Sentences)")
+        st.write("掌握 VSO (動詞在前) 的語序邏輯：")
         
-        for sent in self.data.sentences:
-            frame = tk.Frame(self.root, bg="white", pady=10, padx=10, relief="ridge", bd=2)
-            frame.pack(fill="x", padx=20, pady=5)
-            #  第一性原理：展示完整句構
-            tk.Label(frame, text=sent['amis'], font=("Arial", 13, "bold"), bg="white", fg="#004D40").pack(anchor="w")
-            tk.Label(frame, text=sent['zhtw'], font=("Arial", 11), bg="white", fg="gray").pack(anchor="w")
-            
-        tk.Button(self.root, text="回首頁", command=self.setup_home).pack(pady=20)
+        for i, sent in enumerate(data.sentences):
+            st.markdown(f"#### {i+1}. {sent['amis']}")
+            st.text(f"中文：{sent['zhtw']}")
+            st.caption(f"💡 解析：{sent['note']}")
+            st.divider()
 
     # --- 5. 隨堂測驗 (Quiz) ---
-    # [cite: 47] 遊戲化與回饋迴路
-    def start_quiz(self):
-        self.clear_screen()
-        # 隨機抽取一題
-        question = random.choice(self.data.vocabulary)
-        self.current_q = question
+    elif choice == "📝 隨堂測驗 (Test)":
+        st.header("隨堂測驗 (Quiz)")
         
-        tk.Label(self.root, text="測驗：請問這個詞的意思？", font=("Arial", 14), bg=self.bg_color).pack(pady=30)
-        tk.Label(self.root, text=question['amis'], font=("Arial", 28, "bold"), fg=self.primary_color, bg=self.bg_color).pack(pady=20)
-        
-        # 產生選項 (1個正確 + 2個錯誤)
-        options = [question['zhtw']]
-        while len(options) < 3:
-            distractor = random.choice(self.data.vocabulary)['zhtw']
-            if distractor not in options:
-                options.append(distractor)
-        random.shuffle(options)
-        
-        for opt in options:
-            tk.Button(self.root, text=opt, font=("Arial", 14), width=20, 
-                      command=lambda o=opt: self.check_answer(o)).pack(pady=10)
-        
-        tk.Button(self.root, text="放棄/回首頁", command=self.setup_home, bg="#DDDDDD").pack(pady=30)
+        # 使用 Session State 管理測驗狀態 (防止刷新後重置) [cite: 47]
+        if 'quiz_q' not in st.session_state:
+            st.session_state.quiz_q = None
+            st.session_state.quiz_opts = []
 
-    def check_answer(self, user_ans):
-        #  即時回饋迴路
-        if user_ans == self.current_q['zhtw']:
-            messagebox.showinfo("Nga'ay!", "答對了！太棒了！ (Correct)")
-            self.start_quiz() # 下一題
-        else:
-            messagebox.showerror("Aya...", f"答錯囉。\n正確答案是：{self.current_q['zhtw']}")
+        # 產生新題目按鈕
+        if st.button("🔄 開始出題 / 下一題 (Next Question)"):
+            q = random.choice(data.vocabulary)
+            st.session_state.quiz_q = q
+            
+            # 產生選項
+            options = [q['zhtw']]
+            while len(options) < 3:
+                distractor = random.choice(data.vocabulary)['zhtw']
+                if distractor not in options:
+                    options.append(distractor)
+            random.shuffle(options)
+            st.session_state.quiz_opts = options
+            # 清除之前的回答記錄
+            if 'last_answer' in st.session_state:
+                del st.session_state.last_answer
 
-# ==========================================
-# 🚀 System Boot
-# ==========================================
+        # 顯示題目
+        if st.session_state.quiz_q:
+            q = st.session_state.quiz_q
+            st.markdown(f"### 請問 **{q['amis']}** 的意思是？")
+            
+            # 顯示選項
+            with st.form("quiz_form"):
+                answer = st.radio("請選擇答案：", st.session_state.quiz_opts)
+                submitted = st.form_submit_button("送出答案 (Submit)")
+                
+                if submitted:
+                    if answer == q['zhtw']:
+                        st.success("🎉 Nga'ay! 答對了！(Correct)")
+                        st.balloons()
+                    else:
+                        st.error(f"❌ Aya... 答錯了。正確答案是：{q['zhtw']}")
+
 if __name__ == "__main__":
-    root = tk.Tk()
-    app = AmisLearningApp(root)
-    root.mainloop()
+    main()
